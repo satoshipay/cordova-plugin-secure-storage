@@ -32,14 +32,13 @@ public class SecureStorage extends CordovaPlugin {
     private volatile CallbackContext initContext, secureDeviceContext;
     private volatile boolean initContextRunning = false;
 
+    private volatile boolean setEncryptionRequired = true;
+
     @Override
     public void onResume(boolean multitasking) {
         if (secureDeviceContext != null) {
-            if (isDeviceSecure()) {
-                secureDeviceContext.success();
-            } else {
-                secureDeviceContext.error(MSG_DEVICE_NOT_SECURE);
-            }
+            // make secureDeviceContext always return success because we support both cases now
+            secureDeviceContext.success();
             secureDeviceContext = null;
         }
 
@@ -52,7 +51,7 @@ public class SecureStorage extends CordovaPlugin {
                         if (!RSA.isEntryAvailable(alias)) {
                             //Solves Issue #96. The RSA key may have been deleted by changing the lock type.
                             getStorage(INIT_SERVICE).clear();
-                            RSA.createKeyPair(getContext(), alias);
+                            RSA.createKeyPair(getContext(), alias, setEncryptionRequired);
                         }
                         initSuccess(initContext);
                     } catch (Exception e) {
@@ -100,8 +99,10 @@ public class SecureStorage extends CordovaPlugin {
             SERVICE_STORAGE.put(service, PREFS);
 
             if (!isDeviceSecure()) {
-                Log.e(TAG, MSG_DEVICE_NOT_SECURE);
-                callbackContext.error(MSG_DEVICE_NOT_SECURE);
+                Log.i(TAG, MSG_DEVICE_NOT_SECURE);
+                setEncryptionRequired = false;
+                initContext = callbackContext;
+                onResume(true);
             } else if (!RSA.isEntryAvailable(alias)) {
                 initContext = callbackContext;
                 unlockCredentials();

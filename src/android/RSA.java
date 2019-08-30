@@ -26,7 +26,7 @@ public class RSA {
         return runCipher(Cipher.DECRYPT_MODE, alias, buf);
     }
 
-    public static void createKeyPair(Context ctx, String alias, boolean setEncryptionRequired) throws Exception {
+    public static void createKeyPair(Context ctx, String alias) throws Exception {
         Calendar notBefore = Calendar.getInstance();
         Calendar notAfter = Calendar.getInstance();
         notAfter.add(Calendar.YEAR, 100);
@@ -39,9 +39,6 @@ public class RSA {
             .setEndDate(notAfter.getTime())
             .setKeySize(2048)
             .setKeyType("RSA");
-
-        if (setEncryptionRequired)
-            builder.setEncryptionRequired();
 
         KeyPairGeneratorSpec spec = builder.build();
 

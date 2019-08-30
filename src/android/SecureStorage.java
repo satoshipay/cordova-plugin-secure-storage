@@ -51,7 +51,7 @@ public class SecureStorage extends CordovaPlugin {
                         if (!RSA.isEntryAvailable(alias)) {
                             //Solves Issue #96. The RSA key may have been deleted by changing the lock type.
                             getStorage(INIT_SERVICE).clear();
-                            RSA.createKeyPair(getContext(), alias, setEncryptionRequired);
+                            RSA.createKeyPair(getContext(), alias);
                         }
                         initSuccess(initContext);
                     } catch (Exception e) {
@@ -98,14 +98,9 @@ public class SecureStorage extends CordovaPlugin {
             SharedPreferencesHandler PREFS = new SharedPreferencesHandler(alias, ctx);
             SERVICE_STORAGE.put(service, PREFS);
 
-            if (!isDeviceSecure()) {
-                Log.i(TAG, MSG_DEVICE_NOT_SECURE);
-                setEncryptionRequired = false;
+            if (!RSA.isEntryAvailable(alias)) {
                 initContext = callbackContext;
                 onResume(true);
-            } else if (!RSA.isEntryAvailable(alias)) {
-                initContext = callbackContext;
-                unlockCredentials();
             } else {
                 initSuccess(callbackContext);
             }
@@ -163,7 +158,7 @@ public class SecureStorage extends CordovaPlugin {
         }
         if ("secureDevice".equals(action)) {
             secureDeviceContext = callbackContext;
-            unlockCredentials();
+            // unlockCredentials();
             return true;
         }
         if ("remove".equals(action)) {
@@ -187,17 +182,6 @@ public class SecureStorage extends CordovaPlugin {
         return false;
     }
 
-    private boolean isDeviceSecure() {
-        KeyguardManager keyguardManager = (KeyguardManager)(getContext().getSystemService(Context.KEYGUARD_SERVICE));
-        try {
-            Method isSecure = null;
-            isSecure = keyguardManager.getClass().getMethod("isDeviceSecure");
-            return ((Boolean) isSecure.invoke(keyguardManager)).booleanValue();
-        } catch (Exception e) {
-            return keyguardManager.isKeyguardSecure();
-        }
-    }
-
     private String service2alias(String service) {
         String res = INIT_PACKAGENAME + "." + service;
         return  res;
@@ -209,15 +193,6 @@ public class SecureStorage extends CordovaPlugin {
 
     private void initSuccess(CallbackContext context) {
         context.success();
-    }
-
-    private void unlockCredentials() {
-        cordova.getActivity().runOnUiThread(new Runnable() {
-            public void run() {
-                Intent intent = new Intent("com.android.credentials.UNLOCK");
-                startActivity(intent);
-            }
-        });
     }
 
     private Context getContext() {
